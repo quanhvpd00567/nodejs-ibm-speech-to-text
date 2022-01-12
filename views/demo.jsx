@@ -319,7 +319,7 @@ export class Demo extends Component {
     this.setState({
       model,
       keywords: this.getKeywords(model),
-      speakerLabels: this.supportsSpeakerLabels(model),
+      // speakerLabels: this.supportsSpeakerLabels(model),
     });
 
     // clear the microphone narrowband error if it's visible and a broadband model was just selected
@@ -451,52 +451,10 @@ export class Demo extends Component {
           this.dropzone = node;
         }}
       >
-
-        <div className="drop-info-container">
-          <div className="drop-info">
-            <h1>Drop an audio file here.</h1>
-            <p>Watson Speech to Text supports .mp3, .mpeg, .wav, .opus, and
-              .flac files up to 200mb.
-            </p>
-          </div>
-        </div>
-
-        <div className="new_demo_notification">
-          <Alert type="info" color="blue">
-            {NEW_DEMO_NOTIFICATION}
-            <a href="https://www.ibm.com/demos/live/speech-to-text/self-service/home" target="blank">
-              here.
-            </a>
-          </Alert>
-        </div>
-
-        <h2 className="base--h2">Transcribe Audio</h2>
-
-        <ul className="base--ul">
-          {micBullet}
-          <li className="base--li">Upload pre-recorded audio (.mp3, .mpeg, .wav, .flac, or .opus only).</li>
-          <li className="base--li">Play one of the sample audio files.*</li>
-        </ul>
-
-        <div className="smalltext">
-          *Both US English broadband sample audio files are covered under the
-          Creative Commons license.
-        </div>
-
-        <div style={{
-          paddingRight: '3em',
-          paddingBottom: '2em',
-        }}
-        >
-          The returned result includes the recognized text, {' '}
-          <a className="base--a" href="https://cloud.ibm.com/docs/speech-to-text?topic=speech-to-text-output#word_alternatives">word alternatives</a>, {' '}
-          and <a className="base--a" href="https://cloud.ibm.com/docs/speech-to-text?topic=speech-to-text-output#keyword_spotting">spotted keywords</a>. {' '}
-          Some models can <a className="base--a" href="https://cloud.ibm.com/docs/speech-to-text?topic=speech-to-text-output#speaker_labels">detect multiple speakers</a>; this may slow down performance.
-        </div>
         <div className="flex setup">
           <div className="column">
 
-            <p>Voice Model:
+            <p>Select language:
               <ModelDropdown
                 model={model}
                 accessToken={token || accessToken}
@@ -504,7 +462,7 @@ export class Demo extends Component {
               />
             </p>
 
-            <p className={this.supportsSpeakerLabels() ? 'base--p' : 'base--p_light'}>
+            {/* <p className={this.supportsSpeakerLabels() ? 'base--p' : 'base--p_light'}>
               <input
                 className="base--checkbox"
                 type="checkbox"
@@ -516,12 +474,12 @@ export class Demo extends Component {
               <label className="base--inline-label" htmlFor="speaker-labels">
                 Detect multiple speakers {this.supportsSpeakerLabels() ? '' : ' (Not supported on current model)'}
               </label>
-            </p>
+            </p> */}
 
           </div>
           <div className="column">
 
-            <p>Keywords to spot: <input
+            {/* <p>Keywords to spot: <input
               value={this.getKeywordsArrUnique().join()}
               onChange={this.handleKeywordsChange}
               type="text"
@@ -529,7 +487,7 @@ export class Demo extends Component {
               placeholder="Type comma separated keywords here (optional)"
               className="base--input"
             />
-            </p>
+            </p> */}
 
           </div>
         </div>
@@ -545,13 +503,13 @@ export class Demo extends Component {
             <Icon type={audioSource === 'upload' ? 'stop' : 'upload'} /> Upload Audio File
           </button>
 
-          <button type="button" className={buttonClass} onClick={this.handleSample1Click}>
+          {/* <button type="button" className={buttonClass} onClick={this.handleSample1Click}>
             <Icon type={audioSource === 'sample-1' ? 'stop' : 'play'} /> Play Sample 1
           </button>
 
           <button type="button" className={buttonClass} onClick={this.handleSample2Click}>
             <Icon type={audioSource === 'sample-2' ? 'stop' : 'play'} /> Play Sample 2
-          </button>
+          </button> */}
 
         </div>
 
