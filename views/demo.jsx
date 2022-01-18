@@ -515,7 +515,13 @@ export class Demo extends Component {
 
         {err}
 
-        <Tabs selected={0}>
+        <div style={{ height: '300px', border: '1px solid #777677', overflow: 'auto' }}>
+          {settingsAtStreamStart.speakerLabels
+            ? <SpeakersView messages={messages} />
+            : <Transcript messages={messages} />}
+        </div>
+
+        {/* <Tabs selected={0}>
           <Pane label="Text">
             {settingsAtStreamStart.speakerLabels
               ? <SpeakersView messages={messages} />
@@ -534,7 +540,7 @@ export class Demo extends Component {
           <Pane label="JSON">
             <JSONView raw={rawMessages} formatted={formattedMessages} />
           </Pane>
-        </Tabs>
+        </Tabs> */}
       </Dropzone>
     );
   }
