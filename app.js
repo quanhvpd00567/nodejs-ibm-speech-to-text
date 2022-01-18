@@ -13,8 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ require('dotenv').config({ silent: true });
 
 const express = require('express');
+
+const https = require('https');
+const fs = require('fs');
+const options = {
+  key: fs.readFileSync('key.pem'),
+  cert: fs.readFileSync('cert.pem')
+};
 
 const app = express();
 const { IamTokenManager } = require('ibm-watson/auth');
@@ -41,6 +49,12 @@ app.get('/api/v1/credentials', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+const server = https.createServer(options, app);
+
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
 });
 
 module.exports = app;
