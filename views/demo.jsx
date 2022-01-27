@@ -223,9 +223,9 @@ export class Demo extends Component {
     // that manages the actual WebSocket connection.
     this.handleStream(recognizeFile(this.getRecognizeOptions({
       file,
-      play: true, // play the audio out loud
+      play: false, // play the audio out loud
       // use a helper stream to slow down the transcript output to match the audio speed
-      realtime: true,
+      realtime: false,
     })));
   }
 
@@ -515,7 +515,7 @@ export class Demo extends Component {
 
         {err}
 
-        <div style={{ height: '300px', border: '1px solid #777677', overflow: 'auto' }}>
+        <div style={{ height: '300px', border: '1px solid #777677', overflow: 'auto', color: audioSource === 'upload' ? '#fff' : '#000' }}>
           {settingsAtStreamStart.speakerLabels
             ? <SpeakersView messages={messages} />
             : <Transcript messages={messages} />}
@@ -541,9 +541,10 @@ export class Demo extends Component {
             <JSONView raw={rawMessages} formatted={formattedMessages} />
           </Pane>
         </Tabs> */}
+        <div className={audioSource === 'upload' ? 'loading' : ''} />
       </Dropzone>
     );
   }
-};
+}
 
 export default Demo;
