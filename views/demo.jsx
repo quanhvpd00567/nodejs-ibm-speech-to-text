@@ -390,7 +390,8 @@ export class Demo extends Component {
   handleError(err, extra) {
     console.error(err, extra);
     if (err.name === 'UNRECOGNIZED_FORMAT') {
-      err = 'Unable to determine content type from file name or header; mp3, wav, flac, ogg, opus, and webm are supported. Please choose a different file.';
+      // ignore error
+      err = '';// 'Unable to determine content type from file name or header; mp3, wav, flac, ogg, opus, and webm are supported. Please choose a different file.';
     } else if (err.name === 'NotSupportedError' && this.state.audioSource === 'mic') {
       err = 'This browser does not support microphone input.';
     } else if (err.message === '(\'UpsamplingNotAllowed\', 8000, 16000)') {
@@ -442,7 +443,7 @@ export class Demo extends Component {
         onDropAccepted={this.handleUserFile}
         onDropRejected={this.handleUserFileRejection}
         maxSize={200 * 1024 * 1024}
-        accept="audio/wav, audio/mp3, audio/mpeg, audio/l16, audio/ogg, audio/flac, .mp3, .mpeg, .wav, .ogg, .opus, .flac" // eslint-disable-line
+        accept="audio/wav, audio/mp3, audio/mpeg, audio/l16, audio/ogg, audio/flac, .mp3, .mpeg, .wav, .ogg, .opus, .flac, video/*" // eslint-disable-line
         disableClick
         className="dropzone _container _container_large"
         activeClassName="dropzone-active"
@@ -500,7 +501,7 @@ export class Demo extends Component {
           </button>
 
           <button type="button" className={buttonClass} onClick={this.handleUploadClick}>
-            <Icon type={audioSource === 'upload' ? 'stop' : 'upload'} /> Upload Audio File
+            <Icon type={audioSource === 'upload' ? 'stop' : 'upload'} /> Upload File
           </button>
 
           {/* <button type="button" className={buttonClass} onClick={this.handleSample1Click}>
