@@ -8,14 +8,13 @@ import SpeechToText from 'watson-speech/speech-to-text';
 import cachedModels from '../src/data/models.json';
 import betaModels from '../src/data/beta-models.json';
 
-
 export class ModelDropdown extends Component {
   constructor() {
     super();
     // initialize with a (possibly outdated) cached JSON models file,
     // then update it once we have a token
     this.handleChange = this.handleChange.bind(this);
-    this.state = { models: cachedModels }
+    this.state = { models: cachedModels };
   }
 
   componentDidMount() {
@@ -31,8 +30,8 @@ export class ModelDropdown extends Component {
   }
 
   fetchModels(accessToken) {
-    SpeechToText.getModels({ accessToken }).then(models => this.setState({ models }))
-      .catch(err => console.log('error loading models', err));
+    SpeechToText.getModels({ accessToken }).then((models) => this.setState({ models }))
+      .catch((err) => console.log('error loading models', err));
   }
 
   handleChange(e) {
@@ -47,13 +46,14 @@ export class ModelDropdown extends Component {
     const { model } = this.props;
     const options = models
       .sort((a, b) => a.description > b.description)
-      .map(m => (
+      .map((m) => (
         <option value={m.name} key={m.name}>{m.description.replace(/\.$/, '')}
           {' '}
-          {betaModels.some(b => b === m.name) ? '(Beta)' : ''}
+          {betaModels.some((b) => b === m.name) ? '(Beta)' : ''}
           {' '}
           ({m.rate / 1000}KHz)
-        </option>));
+        </option>
+      ));
 
     return (
       <select

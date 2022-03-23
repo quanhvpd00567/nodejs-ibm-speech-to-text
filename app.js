@@ -13,15 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- require('dotenv').config({ silent: true });
+require('dotenv').config({ silent: true });
 
 const express = require('express');
 
 const https = require('https');
 const fs = require('fs');
+const multer = require('multer');
+const ffmpeg = require('fluent-ffmpeg');
+const SpeechToText = require('watson-speech/speech-to-text');
+const SpeechToTextV1 = require('ibm-watson/speech-to-text/v1');
+const { IamAuthenticator } = require('ibm-watson/auth');
+
 const options = {
   key: fs.readFileSync('key.pem'),
-  cert: fs.readFileSync('cert.pem')
+  cert: fs.readFileSync('cert.pem'),
 };
 
 const app = express();
@@ -36,7 +42,81 @@ const tokenManager = new IamTokenManager({
   apikey: process.env.SPEECH_TO_TEXT_IAM_APIKEY || '<iam_apikey>',
 });
 
+// SET STORAGE
+const storage = multer.diskStorage({
+  destination(req, file, cb) {
+    cb(null, 'uploads');
+  },
+  filename(req, file, cb) {
+    const extArray = file.mimetype.split('/');
+    const extension = extArray[extArray.length - 1];
+    cb(null, `${file.fieldname}-${Date.now()}.${extension}`);
+  },
+});
+
+const upload = multer({ storage });
+
 app.get('/', (req, res) => res.render('index'));
+
+app.post('/upload-video', upload.single('file'), async (req, res) => {
+  const { path } = req.file;
+  const saveLocation = './uploads/output.mp3';
+  const proc = new ffmpeg({ source: path });
+  let results = '';
+  await proc.withAudioCodec('libmp3lame')
+    .toFormat('mp3')
+    .saveToFile(saveLocation, () => {
+    })
+    .on('error', () => {
+      fs.unlinkSync(`./${path}`);
+    })
+    .on('end', async () => {
+      fs.unlinkSync(`./${path}`);
+
+      const speechToText = new SpeechToTextV1({
+        authenticator: new IamAuthenticator({
+          apikey: process.env.SPEECH_TO_TEXT_IAM_APIKEY,
+        }),
+        serviceUrl: process.env.SPEECH_TO_TEXT_URL,
+      });
+
+      const params = {
+        objectMode: true,
+        contentType: 'audio/mp3',
+        model: req.body.type,
+      };
+
+      // Create the stream.
+      const recognizeStream = speechToText.recognizeUsingWebSocket(params);
+
+      // Pipe in the audio.
+      fs.createReadStream(saveLocation).pipe(recognizeStream);
+
+      // eslint-disable-next-line no-use-before-define
+      recognizeStream.on('data', (event) => { onEvent('Data:', event); });
+      // eslint-disable-next-line no-use-before-define
+      recognizeStream.on('error', (event) => { onEvent('Error:', event); });
+      // eslint-disable-next-line no-use-before-define
+      recognizeStream.on('close', (event) => { onEvent('Close:', event); });
+
+      // eslint-disable-next-line consistent-return
+      function onEvent(name, event) {
+        if (name === 'Data:') {
+          results = event;
+        }
+
+        if (name === 'Close:') {
+          return res.json(results);
+        }
+
+        if (name === 'Error:') {
+          return res.json({ event });
+        }
+      }
+    });
+});
+
+// Display events on the console.
 
 // Get credentials using your credentials
 app.get('/api/v1/credentials', async (req, res, next) => {
@@ -53,8 +133,9 @@ app.get('/api/v1/credentials', async (req, res, next) => {
 
 const server = https.createServer(options, app);
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8000;
 server.listen(port, () => {
+  console.log(port);
 });
 
 module.exports = app;

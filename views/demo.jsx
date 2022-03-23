@@ -7,6 +7,9 @@ import {
 import recognizeMicrophone from 'watson-speech/speech-to-text/recognize-microphone';
 import recognizeFile from 'watson-speech/speech-to-text/recognize-file';
 
+import axios from 'axios';
+import fs from 'fs';
+import FormData from 'form-data';
 import ModelDropdown from './model-dropdown.jsx';
 import Transcript from './transcript.jsx';
 import { Keywords, getKeywordsSummary } from './keywords.jsx';
@@ -15,6 +18,8 @@ import TimingView from './timing.jsx';
 import JSONView from './json-view.jsx';
 import samples from '../src/data/samples.json';
 import cachedModels from '../src/data/models.json';
+
+// const ffmpeg = require('fluent-ffmpeg');
 
 const ERR_MIC_NARROWBAND = 'Microphone transcription cannot accommodate narrowband voice models, please select a broadband one.';
 const NEW_DEMO_NOTIFICATION = 'A new Speech to Text demo is available, check it out ';
@@ -70,6 +75,7 @@ export class Demo extends Component {
     this.handleError = this.handleError.bind(this);
   }
 
+  // eslint-disable-next-line react/sort-comp
   reset() {
     if (this.state.audioSource) {
       this.stopTranscription();
@@ -103,8 +109,7 @@ export class Demo extends Component {
 
   getRecognizeOptions(extra) {
     const keywords = this.getKeywordsArrUnique();
-    return Object.assign({
-      // formats phone numbers, currency, etc. (server-side)
+    return { // formats phone numbers, currency, etc. (server-side)
       accessToken: this.state.accessToken,
       token: this.state.token,
       smartFormatting: true,
@@ -127,7 +132,8 @@ export class Demo extends Component {
       // allow interim results through before the speaker has been determined
       speakerlessInterim: this.state.speakerLabels,
       url: this.state.serviceUrl,
-    }, extra);
+      ...extra,
+    };
   }
 
   isNarrowBand(model) {
@@ -135,6 +141,7 @@ export class Demo extends Component {
     return model.indexOf('Narrowband') !== -1;
   }
 
+  // eslint-disable-next-line react/sort-comp
   handleMicClick() {
     if (this.state.audioSource === 'mic') {
       this.stopTranscription();
@@ -167,6 +174,24 @@ export class Demo extends Component {
 
   handleUserFile(files) {
     const file = files[0];
+    const typeFile = file.type;
+    if (typeFile === 'video/mp4') {
+      // todo;
+      // ffmpeg('/path/to/file.avi')
+      //   .output('outputfile.mp3');
+      this.setState({ audioSource: 'upload' });
+      const form = new FormData();
+      form.append('file', file);
+      form.append('type', this.state.model);
+
+      axios.post('upload-video', form).then((res) => {
+        this.reset();
+        this.handleFormattedMessage(res.data);
+        this.setState({ audioSource: '' });
+      });
+      return;
+    }
+
     if (!file) {
       return;
     }
@@ -186,7 +211,6 @@ export class Demo extends Component {
   handleSample2Click() {
     this.handleSampleClick(2);
   }
-
 
   handleSampleClick(which) {
     if (this.state.audioSource === `sample-${which}`) {
@@ -230,7 +254,6 @@ export class Demo extends Component {
   }
 
   handleStream(stream) {
-    console.log(stream);
     // cleanup old stream if appropriate
     if (this.stream) {
       this.stream.stop();
@@ -238,10 +261,12 @@ export class Demo extends Component {
       this.stream.recognizeStream.removeAllListeners();
     }
     this.stream = stream;
-    this.captureSettings();
+    // this.captureSettings();
 
     // grab the formatted messages and also handle errors and such
-    stream.on('data', this.handleFormattedMessage).on('end', this.handleTranscriptEnd).on('error', this.handleError);
+    stream.on('data', this.handleFormattedMessage)
+      .on('end', this.handleTranscriptEnd)
+      .on('error', this.handleError);
 
     // when errors occur, the end event may not propagate through the helper streams.
     // However, the recognizeStream should always fire a end and close events
@@ -254,7 +279,7 @@ export class Demo extends Component {
     // grab raw messages from the debugging events for display on the JSON tab
     stream.recognizeStream
       .on('message', (frame, json) => this.handleRawMessage({ sent: false, frame, json }))
-      .on('send-json', json => this.handleRawMessage({ sent: true, json }))
+      .on('send-json', (json) => this.handleRawMessage({ sent: true, json }))
       .once('send-data', () => this.handleRawMessage({
         sent: true, binary: true, data: true, // discard the binary data to avoid waisting memory
       }))
@@ -297,13 +322,23 @@ export class Demo extends Component {
   }
 
   fetchToken() {
-    return fetch('/api/v1/credentials').then((res) => {
-      if (res.status !== 200) {
-        throw new Error('Error retrieving auth token');
-      }
-      return res.json();
-    }) // todo: throw here if non-200 status
-      .then(creds => this.setState({ ...creds })).catch(this.handleError);
+    return axios.get('/api/v1/credentials')
+      .then((res) => {
+        console.log(res);
+        if (res.status !== 200) {
+          throw new Error('Error retrieving auth token');
+        }
+        return res.data;
+      })
+      .then((creds) => this.setState({ ...creds })).catch(this.handleError);
+
+    // return fetch('/api/v1/credentials').then((res) => {
+    //   if (res.status !== 200) {
+    //     throw new Error('Error retrieving auth token');
+    //   }
+    //   return res.json();
+    // }) // todo: throw here if non-200 status
+    //   .then((creds) => this.setState({ ...creds })).catch(this.handleError);
   }
 
   getKeywords(model) {
@@ -337,11 +372,11 @@ export class Demo extends Component {
   supportsSpeakerLabels(model) {
     model = model || this.state.model;
     // todo: read the upd-to-date models list instead of the cached one
-    return cachedModels.some(m => m.name === model && m.supported_features.speaker_labels);
+    return cachedModels.some((m) => m.name === model && m.supported_features.speaker_labels);
   }
 
   handleSpeakerLabelsChange() {
-    this.setState(prevState => ({ speakerLabels: !prevState.speakerLabels }));
+    this.setState((prevState) => ({ speakerLabels: !prevState.speakerLabels }));
   }
 
   handleKeywordsChange(e) {
@@ -350,19 +385,19 @@ export class Demo extends Component {
 
   // cleans up the keywords string into an array of individual, trimmed, non-empty keywords/phrases
   getKeywordsArr() {
-    return this.state.keywords.split(',').map(k => k.trim()).filter(k => k);
+    return this.state.keywords.split(',').map((k) => k.trim()).filter((k) => k);
   }
 
   // cleans up the keywords string and produces a unique list of keywords
   getKeywordsArrUnique() {
     return this.state.keywords
       .split(',')
-      .map(k => k.trim())
+      .map((k) => k.trim())
       .filter((value, index, self) => self.indexOf(value) === index);
   }
 
   getFinalResults() {
-    return this.state.formattedMessages.filter(r => r.results
+    return this.state.formattedMessages.filter((r) => r.results
       && r.results.length && r.results[0].final);
   }
 
@@ -443,7 +478,7 @@ export class Demo extends Component {
         onDropAccepted={this.handleUserFile}
         onDropRejected={this.handleUserFileRejection}
         maxSize={200 * 1024 * 1024}
-        accept="audio/wav, audio/mp3, audio/mpeg, audio/l16, audio/ogg, audio/flac, .mp3, .mpeg, .wav, .ogg, .opus, .flac, video/*" // eslint-disable-line
+        accept="audio/*, .mp3, .mpeg, .wav, .ogg, .opus, .flac, video/*" // eslint-disable-line
         disableClick
         className="dropzone _container _container_large"
         activeClassName="dropzone-active"
@@ -493,7 +528,6 @@ export class Demo extends Component {
           </div>
         </div>
 
-
         <div className="flex buttons">
 
           <button type="button" className={micButtonClass} onClick={this.handleMicClick}>
@@ -516,7 +550,10 @@ export class Demo extends Component {
 
         {err}
 
-        <div style={{ height: '300px', border: '1px solid #777677', overflow: 'auto', color: audioSource === 'upload' ? '#fff' : '#000' }}>
+        <div style={{
+          height: '300px', border: '1px solid #777677', overflow: 'auto', color: audioSource === 'upload' ? '#fff' : '#000',
+        }}
+        >
           {settingsAtStreamStart.speakerLabels
             ? <SpeakersView messages={messages} />
             : <Transcript messages={messages} />}
