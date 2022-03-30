@@ -43,6 +43,7 @@ export class Demo extends Component {
         speakerLabels: false,
       },
       error: null,
+      compare_text: { ResultList: [] },
     };
 
     this.handleSampleClick = this.handleSampleClick.bind(this);
@@ -73,6 +74,7 @@ export class Demo extends Component {
     this.getCurrentInterimResult = this.getCurrentInterimResult.bind(this);
     this.getFinalAndLatestInterimResult = this.getFinalAndLatestInterimResult.bind(this);
     this.handleError = this.handleError.bind(this);
+    this.handleComprehend = this.handleComprehend.bind(this);
   }
 
   // eslint-disable-next-line react/sort-comp
@@ -179,7 +181,7 @@ export class Demo extends Component {
       // todo;
       // ffmpeg('/path/to/file.avi')
       //   .output('outputfile.mp3');
-      this.setState({ audioSource: 'upload' });
+      this.setState({ audioSource: 'upload', compare_text: { ResultList: [] } });
       const form = new FormData();
       form.append('file', file);
       form.append('type', this.state.model);
@@ -438,6 +440,44 @@ export class Demo extends Component {
     this.setState({ error: err.message || err });
   }
 
+  getComprehendText() {
+    console.log(this.state.compare_text);
+    return this.state.compare_text;
+  }
+
+  handleComprehend() {
+    // const results = props.messages.map((msg) => msg.results.map((result, i) => (
+    //   <span key={`result-${msg.result_index + i}`}>{result.alternatives[0].transcript}</span>
+    // ))).reduce((a, b) => a.concat(b), []);
+
+    const messages = this.getFinalAndLatestInterimResult();
+
+    const text = messages.map((msg) => msg.results.map((result) => (
+      result.alternatives[0].transcript
+    ))).reduce((a, b) => a.concat(b), []);
+
+    // const text = ["the good I no no she's %HESITATION just a tune up on your muscle your call may not until then you know do it the bodies are considered confidential no certain critical hit you okay consulting offices W. ", "I didn't score in Wasilla the dongle not sixty meters single machine gun in zero that she wanted to even look up an indigenous that king I know because she's you'll kill us look at the missing ", "the bodies are considered confidential %HESITATION you'll potato chip okay looking again still not operational succeeding to juvenile we thought you only to estimate the cost ", 'Gilbertson was okay when he said that the bodies of those who deserve it ', "gives them their out Gimple snow on them a couple three days it'll state okay who could I even though he's %HESITATION just a to a casino host system to a digital there are nice if they didn't say a school custodian of the digital state must ", 'but I HA cooks agency to combat the growing up %HESITATION could I hold just a minute and you can call the night before could not double stakes ', "again within a week you'll get that instead I don't know what the parties are not %HESITATION you'll get paid to scan each double seat with title green good about Isola this is not the got it but consider a single read again but the signal Jew binocular United smokers and you forget your young adult listen hello he hunts must "];
+
+    this.setState({ audioSource: 'loading' });
+
+    axios({
+      method: 'post',
+      url: '/api/v1/comprehend',
+      headers: { 'Content-Type': 'application/json' },
+      data: {
+        text,
+      },
+    }).then((res) => {
+      if (res.status !== 200) {
+        throw new Error('Error retrieving auth token');
+      }
+
+      this.setState({ compare_text: res.data, audioSource: '' });
+
+      return res.data;
+    }).then((creds) => this.setState({ ...creds })).catch(this.handleError);
+  }
+
   render() {
     const {
       token, accessToken, audioSource, error, model, speakerLabels, settingsAtStreamStart,
@@ -445,6 +485,7 @@ export class Demo extends Component {
     } = this.state;
 
     const buttonsEnabled = !!token || !!accessToken;
+
     const buttonClass = buttonsEnabled
       ? 'base--button'
       : 'base--button base--button_black';
@@ -469,6 +510,8 @@ export class Demo extends Component {
       : null;
 
     const messages = this.getFinalAndLatestInterimResult();
+    const index = 0;
+    const data = this.getComprehendText();
     const micBullet = (typeof window !== 'undefined' && recognizeMicrophone.isSupported)
       ? <li className="base--li">Use your microphone to record audio. For best results, use broadband models for microphone input.</li>
       : <li className="base--li base--p_light">Use your microphone to record audio. (Not supported in current browser)</li>;// eslint-disable-line
@@ -559,27 +602,33 @@ export class Demo extends Component {
             : <Transcript messages={messages} />}
         </div>
 
-        {/* <Tabs selected={0}>
-          <Pane label="Text">
-            {settingsAtStreamStart.speakerLabels
-              ? <SpeakersView messages={messages} />
-              : <Transcript messages={messages} />}
-          </Pane>
-          <Pane label="Word Timings and Alternatives">
-            <TimingView messages={messages} />
-          </Pane>
-          <Pane label={`Keywords ${getKeywordsSummary(settingsAtStreamStart.keywords, messages)}`}>
-            <Keywords
-              messages={messages}
-              keywords={settingsAtStreamStart.keywords}
-              isInProgress={!!audioSource}
-            />
-          </Pane>
-          <Pane label="JSON">
-            <JSONView raw={rawMessages} formatted={formattedMessages} />
-          </Pane>
-        </Tabs> */}
-        <div className={audioSource === 'upload' ? 'loading' : ''} />
+        <button type="button" className={buttonClass} onClick={this.handleComprehend}>
+          Analysis
+        </button>
+
+        <div className="card">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                data.ResultList.map((x, i) => (
+                  x.Entities.map((y, u) => (
+                    <tr key="y" style={{ textAlign: 'left' }}>
+                      <th>{y.Type}</th>
+                      <th>{y.Text}</th>
+                    </tr>
+                  ))
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+        <div className={audioSource === 'upload' || audioSource === 'loading' ? 'loading' : ''} />
       </Dropzone>
     );
   }

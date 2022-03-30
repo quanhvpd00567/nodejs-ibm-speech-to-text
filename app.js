@@ -24,6 +24,9 @@ const ffmpeg = require('fluent-ffmpeg');
 const SpeechToText = require('watson-speech/speech-to-text');
 const SpeechToTextV1 = require('ibm-watson/speech-to-text/v1');
 const { IamAuthenticator } = require('ibm-watson/auth');
+const AWS = require('aws-sdk');
+const Comprehend = require('aws-sdk/clients/comprehend');
+const bodyParser = require('body-parser');
 
 const options = {
   key: fs.readFileSync('key.pem'),
@@ -31,6 +34,9 @@ const options = {
 };
 
 const app = express();
+// parse application/json
+app.use(bodyParser.json());
+
 const { IamTokenManager } = require('ibm-watson/auth');
 
 // Bootstrap application settings
@@ -55,6 +61,31 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+app.post('/api/v1/comprehend', async (req, res) => {
+  const comprehend = new Comprehend({
+    region: 'ap-northeast-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+  });
+
+  let lang = 'en';
+  if (req.body.lang !== 'en-US_BroadbandModel') {
+    lang = 'ja';
+  }
+
+  const xxx = comprehend.batchDetectEntities({
+    TextList: req.body.text || [],
+    LanguageCode: lang,
+  }).promise();
+
+  xxx.then((data) => {
+    console.log(data);
+    res.json(data);
+  });
+});
 
 app.get('/', (req, res) => res.render('index'));
 
