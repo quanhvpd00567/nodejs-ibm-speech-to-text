@@ -44,6 +44,9 @@ export class Demo extends Component {
       },
       error: null,
       compare_text: { ResultList: [] },
+      sentiments: [],
+      dataInput: [],
+      sentimentSelect: '',
     };
 
     this.handleSampleClick = this.handleSampleClick.bind(this);
@@ -75,6 +78,7 @@ export class Demo extends Component {
     this.getFinalAndLatestInterimResult = this.getFinalAndLatestInterimResult.bind(this);
     this.handleError = this.handleError.bind(this);
     this.handleComprehend = this.handleComprehend.bind(this);
+    this.onSentimentChange = this.onSentimentChange.bind(this);
   }
 
   // eslint-disable-next-line react/sort-comp
@@ -446,19 +450,15 @@ export class Demo extends Component {
   }
 
   handleComprehend() {
-    // const results = props.messages.map((msg) => msg.results.map((result, i) => (
-    //   <span key={`result-${msg.result_index + i}`}>{result.alternatives[0].transcript}</span>
-    // ))).reduce((a, b) => a.concat(b), []);
-
     const messages = this.getFinalAndLatestInterimResult();
 
     const text = messages.map((msg) => msg.results.map((result) => (
       result.alternatives[0].transcript
     ))).reduce((a, b) => a.concat(b), []);
 
-    // const text = ["the good I no no she's %HESITATION just a tune up on your muscle your call may not until then you know do it the bodies are considered confidential no certain critical hit you okay consulting offices W. ", "I didn't score in Wasilla the dongle not sixty meters single machine gun in zero that she wanted to even look up an indigenous that king I know because she's you'll kill us look at the missing ", "the bodies are considered confidential %HESITATION you'll potato chip okay looking again still not operational succeeding to juvenile we thought you only to estimate the cost ", 'Gilbertson was okay when he said that the bodies of those who deserve it ', "gives them their out Gimple snow on them a couple three days it'll state okay who could I even though he's %HESITATION just a to a casino host system to a digital there are nice if they didn't say a school custodian of the digital state must ", 'but I HA cooks agency to combat the growing up %HESITATION could I hold just a minute and you can call the night before could not double stakes ', "again within a week you'll get that instead I don't know what the parties are not %HESITATION you'll get paid to scan each double seat with title green good about Isola this is not the got it but consider a single read again but the signal Jew binocular United smokers and you forget your young adult listen hello he hunts must "];
+    // const text = ['ウクライナ の 非常 事態 庁 など に より ます と 四日 未明 南東部 に ある ザポリージャ 原子力 発電所 が ロシア軍 から 攻撃 を 受け 火災 が 発生 した と いう こと です ', '現地 から の 映像 では 弾丸 の 奇跡 と みられる 閃光 が 走り 画面 中央 で 私 が 出て いる のが 確認 できます が 被害 の 詳しい 状況 は わかって いません ', 'ザポリージャ 原子力 発電所 は ヨーロッパ 最大 規模 で ロッキー の 原子炉 が あり 国内 で の 発電 供給量 の およそ 四分の 一 を 占めて います ', '原発 の 状況 に ついて ザポリージャ の 州知事 は ', '現時点 では 原発 の 安全 は 確保 されて いる と して いる ほか ウクライナ の 非常 事態 庁 は 火災 が 発生 した のは 原子炉 では ない 施設 で 現在 消火 活動 に あたって いる と して います ', 'また ＩＡＥＡ 国際 原子力 機関 は ウクライナ 当局 から 放射線 レベル に 変化 は ない と 報告 が あった と して います ', '原発 への 攻撃 を 受け 全然 好き 大統領 は ザポリージャ が 攻撃 を 受けて いる 助け に 来て 欲しい と 訴えた ほか ', 'れば 外相 は 自身 の ツイッター で 爆発 すれば チェルノブイリ 原発 事故 の 十倍 の 規模 に なる 即座 に 砲撃 を やめろ と ロシア 側 を 批判 しました '];
 
-    this.setState({ audioSource: 'loading' });
+    this.setState({ audioSource: 'loading', sentimentSelect: '', sentiments: [] });
 
     axios({
       method: 'post',
@@ -466,16 +466,38 @@ export class Demo extends Component {
       headers: { 'Content-Type': 'application/json' },
       data: {
         text,
+        lang: this.state.model,
       },
     }).then((res) => {
       if (res.status !== 200) {
         throw new Error('Error retrieving auth token');
       }
+      this.setState({
+        // eslint-disable-next-line react/no-unused-state
+        compare_text: res.data, audioSource: '', dataInput: text,
+      });
 
-      this.setState({ compare_text: res.data, audioSource: '' });
+      const sentiments = [];
+      this.state.compare_text.ResultList.map((item) => {
+        const sentiment = item.Sentiment;
+        if (!sentiments.includes(sentiment)) {
+          sentiments.push(sentiment);
+        }
+
+        return sentiment;
+      });
+
+      this.setState({
+        sentiments,
+      });
 
       return res.data;
     }).then((creds) => this.setState({ ...creds })).catch(this.handleError);
+  }
+
+  onSentimentChange(e) {
+    console.log(e);
+    this.setState({ sentimentSelect: e.target.value });
   }
 
   render() {
@@ -512,6 +534,7 @@ export class Demo extends Component {
     const messages = this.getFinalAndLatestInterimResult();
     const index = 0;
     const data = this.getComprehendText();
+    const { sentiments, dataInput, sentimentSelect } = this.state;
     const micBullet = (typeof window !== 'undefined' && recognizeMicrophone.isSupported)
       ? <li className="base--li">Use your microphone to record audio. For best results, use broadband models for microphone input.</li>
       : <li className="base--li base--p_light">Use your microphone to record audio. (Not supported in current browser)</li>;// eslint-disable-line
@@ -581,6 +604,10 @@ export class Demo extends Component {
             <Icon type={audioSource === 'upload' ? 'stop' : 'upload'} /> Upload File
           </button>
 
+          <button type="button" className={buttonClass} onClick={this.handleComprehend}>
+            Analysis
+          </button>
+
           {/* <button type="button" className={buttonClass} onClick={this.handleSample1Click}>
             <Icon type={audioSource === 'sample-1' ? 'stop' : 'play'} /> Play Sample 1
           </button>
@@ -602,32 +629,37 @@ export class Demo extends Component {
             : <Transcript messages={messages} />}
         </div>
 
-        <button type="button" className={buttonClass} onClick={this.handleComprehend}>
-          Analysis
-        </button>
-
         <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {
-                data.ResultList.map((x, i) => (
-                  x.Entities.map((y, u) => (
-                    <tr key="y" style={{ textAlign: 'left' }}>
-                      <th>{y.Type}</th>
-                      <th>{y.Text}</th>
-                    </tr>
-                  ))
-                ))
-              }
-            </tbody>
-          </table>
+          <div className="card__section">
+            {
+            sentiments.map((sentiment, index) => (
+              <div className="form-check" style={{ display: 'inline-block', paddingLeft: '20px' }} key={index}>
+                <input
+                  className="form-check-input"
+                  checked={this.state.sentimentSelect === sentiment}
+                  type="radio"
+                  onChange={this.onSentimentChange}
+                  value={sentiment}
+                  name="sentiment_type"
+                  id={index}
+                />
+                <label className="form-check-label" htmlFor={index}>{sentiment}</label>
+              </div>
+            ))
+          }
+          </div>
+
+          <div className="card-body">
+            {
+              // eslint-disable-next-line no-shadow
+              data.ResultList.map((item, index) => (
+                <span key={index} className={sentimentSelect === item.Sentiment ? item.Sentiment : ''}>{dataInput[index]} </span>
+              ))
+            }
+            <div className="card__section" />
+          </div>
         </div>
+
         <div className={audioSource === 'upload' || audioSource === 'loading' ? 'loading' : ''} />
       </Dropzone>
     );

@@ -173,3 +173,16 @@ dialog, dd, dt {
     position: fixed;
     background-color: rgba(0, 0, 0, 0.6);
 }
+
+.NEUTRAL{
+    background-color: #19A3F7;
+  }
+  .NEGATIVE{
+    background-color: #1AE5CD;
+  }
+  .POSITIVE{
+    background-color: #7DB258;
+  }
+  .MIXED{
+    background-color: #FFA197;
+  }

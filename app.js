@@ -38,6 +38,7 @@ const app = express();
 app.use(bodyParser.json());
 
 const { IamTokenManager } = require('ibm-watson/auth');
+const { text } = require('body-parser');
 
 // Bootstrap application settings
 require('./config/express')(app);
@@ -76,8 +77,8 @@ app.post('/api/v1/comprehend', async (req, res) => {
     lang = 'ja';
   }
 
-  const xxx = comprehend.batchDetectEntities({
-    TextList: req.body.text || [],
+  const xxx = comprehend.batchDetectSentiment({
+    TextList: req.body.text,
     LanguageCode: lang,
   }).promise();
 
@@ -85,6 +86,16 @@ app.post('/api/v1/comprehend', async (req, res) => {
     console.log(data);
     res.json(data);
   });
+
+  // const xxx = comprehend.batchDetectEntities({
+  //   TextList: req.body.text || [],
+  //   LanguageCode: lang,
+  // }).promise();
+
+  // xxx.then((data) => {
+  //   console.log(data);
+  //   res.json(data);
+  // });
 });
 
 app.get('/', (req, res) => res.render('index'));
