@@ -77,8 +77,8 @@ app.post('/api/v1/comprehend', async (req, res) => {
     lang = 'ja';
   }
 
-  const xxx = comprehend.batchDetectSentiment({
-    TextList: req.body.text,
+  const xxx = comprehend.detectSentiment({
+    Text: req.body.text,
     LanguageCode: lang,
   }).promise();
 

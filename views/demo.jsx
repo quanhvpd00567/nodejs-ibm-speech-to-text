@@ -47,6 +47,7 @@ export class Demo extends Component {
       sentiments: [],
       dataInput: [],
       sentimentSelect: '',
+      sentimentInfo: '',
     };
 
     this.handleSampleClick = this.handleSampleClick.bind(this);
@@ -452,13 +453,17 @@ export class Demo extends Component {
   handleComprehend() {
     const messages = this.getFinalAndLatestInterimResult();
 
-    const text = messages.map((msg) => msg.results.map((result) => (
+    if (messages.length === 0) { return; }
+
+    let text = messages.map((msg) => msg.results.map((result) => (
       result.alternatives[0].transcript
     ))).reduce((a, b) => a.concat(b), []);
 
-    // const text = ['ウクライナ の 非常 事態 庁 など に より ます と 四日 未明 南東部 に ある ザポリージャ 原子力 発電所 が ロシア軍 から 攻撃 を 受け 火災 が 発生 した と いう こと です ', '現地 から の 映像 では 弾丸 の 奇跡 と みられる 閃光 が 走り 画面 中央 で 私 が 出て いる のが 確認 できます が 被害 の 詳しい 状況 は わかって いません ', 'ザポリージャ 原子力 発電所 は ヨーロッパ 最大 規模 で ロッキー の 原子炉 が あり 国内 で の 発電 供給量 の およそ 四分の 一 を 占めて います ', '原発 の 状況 に ついて ザポリージャ の 州知事 は ', '現時点 では 原発 の 安全 は 確保 されて いる と して いる ほか ウクライナ の 非常 事態 庁 は 火災 が 発生 した のは 原子炉 では ない 施設 で 現在 消火 活動 に あたって いる と して います ', 'また ＩＡＥＡ 国際 原子力 機関 は ウクライナ 当局 から 放射線 レベル に 変化 は ない と 報告 が あった と して います ', '原発 への 攻撃 を 受け 全然 好き 大統領 は ザポリージャ が 攻撃 を 受けて いる 助け に 来て 欲しい と 訴えた ほか ', 'れば 外相 は 自身 の ツイッター で 爆発 すれば チェルノブイリ 原発 事故 の 十倍 の 規模 に なる 即座 に 砲撃 を やめろ と ロシア 側 を 批判 しました '];
+    // let text = ['ウクライナ の 非常 事態 庁 など に より ます と 四日 未明 南東部 に ある ザポリージャ 原子力 発電所 が ロシア軍 から 攻撃 を 受け 火災 が 発生 した と いう こと です ', '現地 から の 映像 では 弾丸 の 奇跡 と みられる 閃光 が 走り 画面 中央 で 私 が 出て いる のが 確認 できます が 被害 の 詳しい 状況 は わかって いません ', 'ザポリージャ 原子力 発電所 は ヨーロッパ 最大 規模 で ロッキー の 原子炉 が あり 国内 で の 発電 供給量 の およそ 四分の 一 を 占めて います ', '原発 の 状況 に ついて ザポリージャ の 州知事 は ', '現時点 では 原発 の 安全 は 確保 されて いる と して いる ほか ウクライナ の 非常 事態 庁 は 火災 が 発生 した のは 原子炉 では ない 施設 で 現在 消火 活動 に あたって いる と して います ', 'また ＩＡＥＡ 国際 原子力 機関 は ウクライナ 当局 から 放射線 レベル に 変化 は ない と 報告 が あった と して います ', '原発 への 攻撃 を 受け 全然 好き 大統領 は ザポリージャ が 攻撃 を 受けて いる 助け に 来て 欲しい と 訴えた ほか ', 'れば 外相 は 自身 の ツイッター で 爆発 すれば チェルノブイリ 原発 事故 の 十倍 の 規模 に なる 即座 に 砲撃 を やめろ と ロシア 側 を 批判 しました '];
 
     this.setState({ audioSource: 'loading', sentimentSelect: '', sentiments: [] });
+
+    text = text.join(' ');
 
     axios({
       method: 'post',
@@ -472,23 +477,14 @@ export class Demo extends Component {
       if (res.status !== 200) {
         throw new Error('Error retrieving auth token');
       }
+
+      const datax = JSON.stringify(res.data, null, 10);
+
       this.setState({
         // eslint-disable-next-line react/no-unused-state
-        compare_text: res.data, audioSource: '', dataInput: text,
-      });
-
-      const sentiments = [];
-      this.state.compare_text.ResultList.map((item) => {
-        const sentiment = item.Sentiment;
-        if (!sentiments.includes(sentiment)) {
-          sentiments.push(sentiment);
-        }
-
-        return sentiment;
-      });
-
-      this.setState({
-        sentiments,
+        sentimentInfo: datax,
+        audioSource: '',
+        dataInput: text,
       });
 
       return res.data;
@@ -534,7 +530,9 @@ export class Demo extends Component {
     const messages = this.getFinalAndLatestInterimResult();
     const index = 0;
     const data = this.getComprehendText();
-    const { sentiments, dataInput, sentimentSelect } = this.state;
+    const {
+      sentiments, dataInput, sentimentSelect, sentimentInfo,
+    } = this.state;
     const micBullet = (typeof window !== 'undefined' && recognizeMicrophone.isSupported)
       ? <li className="base--li">Use your microphone to record audio. For best results, use broadband models for microphone input.</li>
       : <li className="base--li base--p_light">Use your microphone to record audio. (Not supported in current browser)</li>;// eslint-disable-line
@@ -630,34 +628,9 @@ export class Demo extends Component {
         </div>
 
         <div className="card">
-          <div className="card__section">
-            {
-            sentiments.map((sentiment, index) => (
-              <div className="form-check" style={{ display: 'inline-block', paddingLeft: '20px' }} key={index}>
-                <input
-                  className="form-check-input"
-                  checked={this.state.sentimentSelect === sentiment}
-                  type="radio"
-                  onChange={this.onSentimentChange}
-                  value={sentiment}
-                  name="sentiment_type"
-                  id={index}
-                />
-                <label className="form-check-label" htmlFor={index}>{sentiment}</label>
-              </div>
-            ))
-          }
-          </div>
-
-          <div className="card-body">
-            {
-              // eslint-disable-next-line no-shadow
-              data.ResultList.map((item, index) => (
-                <span key={index} className={sentimentSelect === item.Sentiment ? item.Sentiment : ''}>{dataInput[index]} </span>
-              ))
-            }
-            <div className="card__section" />
-          </div>
+          <pre>
+            <code style={{ height: 'auto' }}>{sentimentInfo}</code>
+          </pre>
         </div>
 
         <div className={audioSource === 'upload' || audioSource === 'loading' ? 'loading' : ''} />
